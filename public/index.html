@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bed-Rot Coder</title>
+    <style>
+        body { background-color: #121212; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
+        button { padding: 20px 40px; font-size: 24px; border-radius: 50px; border: none; background: #ff4757; color: white; cursor: pointer; transition: 0.2s; }
+        button:active { background: #ff6b81; transform: scale(0.95); }
+        #status { margin-top: 20px; font-size: 18px; color: #7bed9f; }
+    </style>
+</head>
+<body>
+    <h1>🦥 Bed-Rot Coder</h1>
+    <button id="recordBtn">🎤 Hold to Speak</button>
+    <div id="status">Waiting for command...</div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        const recordBtn = document.getElementById('recordBtn');
+        const status = document.getElementById('status');
+
+        recordBtn.addEventListener('mousedown', async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                audioChunks = [];
+                status.innerText = "Sending to AI...";
+                
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'command.wav');
+
+                await fetch('/upload', { method: 'POST', body: formData });
+                status.innerText = "Command Sent! Check Terminal.";
+            };
+
+            mediaRecorder.start();
+            status.innerText = "Listening... (Release to Stop)";
+            recordBtn.style.background = "#2ed573";
+        });
+
+        recordBtn.addEventListener('mouseup', () => {
+            mediaRecorder.stop();
+            recordBtn.style.background = "#ff4757";
+        });
+    </script>
+</body>
+</html>
